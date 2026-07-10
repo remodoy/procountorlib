@@ -1,0 +1,24 @@
+[project]
+name = "procountorlib"
+version = "1.0.0"
+authors = [
+  { name="Antti Kettuneva"},
+]
+description = "A Python Procountor API library"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests>=2.32.4",
+    "simplejson>=3.20.1",
+]
+license = "MIT"
+license-files = ["LICENCE"]
+
+[project.urls]
+Homepage = "https://github.com/remodoy/procountorlib"
+Issues = "https://github.com/remodoy/procountorlib/issues"
+Repository = "https://github.com/remodoy/procountorlib.git"
