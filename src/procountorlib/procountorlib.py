@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, date, UTC, timezone
 from decimal import Decimal
 from typing import Dict, ByteString, List, Optional
 from enum import Enum
+from urllib.parse import urlparse, urlunparse, urlencode
 
 import simplejson
 import requests
@@ -1268,6 +1269,36 @@ class ProductVersion(Enum):
     SALES_SILVER = "SALES_SILVER"
 
 
+class BrnType(Enum):
+    ASSN = "ASSN"
+    DK = "DK"
+    FI = "FI"
+    HETU = "HETU"
+    NO = "NO"
+    PN = "PN"
+    SE = "SE"
+    SSN = "SSN"
+    YHD = "YHD"
+
+
+class OperationType(Enum):
+    BROKEN = "BROKEN"
+    CEASED = "CEASED"
+    CLOSED = "CLOSED"
+    DEMONSTRATION = "DEMONSTRATION"
+    EDUCATIONAL = "EDUCATIONAL"
+    ELISA_PURCHASE = "ELISA_PURCHASE"
+    PRODUCTION = "PRODUCTION"
+    SPECIAL = "SPECIAL"
+    TRIAL = "TRIAL"
+
+
+class CurrencyRateSearchDensity(Enum):
+    DAILY_EXCHANGE_RATE = "DAILY_EXCHANGE_RATE"
+    LAST_DAY_OF_THE_MONTH = "LAST_DAY_OF_THE_MONTH"
+    PROCOUNTOR_FIXED_RATE = "PROCOUNTOR_FIXED_RATE"
+
+
 def find_country_by_code(code):
     try:
         return CountryCodes[code].value
@@ -1289,7 +1320,7 @@ class ProcountorAPIValidationError(ProcountorBaseException):
     pass
 
 
-class RefreshTokenExpiredException(ProcountorBaseException):
+class ProcountorRefreshTokenExpired(ProcountorBaseException):
     pass
 
 
@@ -1333,6 +1364,230 @@ class CompanySettings(ProcountorAPIObject):
     def from_dict(cls, data: Dict[str, typing.Any]) -> "CompanySettings":
         return cls(
             invoice_discussion_enabled=data.get("invoiceDiscussionEnabled", None),
+        )
+
+
+class CompanyAddress(ProcountorAPIObject):
+    def __init__(
+        self,
+        specifier: Optional[str] = None,
+        po_box: Optional[str] = None,
+        street: Optional[str] = None,
+        zip: Optional[str] = None,
+        city: Optional[str] = None,
+        country: Optional[Country] = None,
+    ):
+        self.specifier: Optional[str] = specifier
+        self.po_box: Optional[str] = po_box
+        self.street: Optional[str] = street
+        self.zip: Optional[str] = zip
+        self.city: Optional[str] = city
+        self.country: Optional[Country] = country
+
+    def as_dict(self) -> typing.Dict:
+        data = {}
+        if self.specifier is not None:
+            data["specifier"] = self.specifier
+        if self.po_box is not None:
+            data["poBox"] = self.po_box
+        if self.street is not None:
+            data["street"] = self.street
+        if self.zip is not None:
+            data["zip"] = self.zip
+        if self.city is not None:
+            data["city"] = self.city
+        if self.country is not None:
+            data["country"] = self.country.value
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, typing.Any]) -> "CompanyAddress":
+        country = None
+        if "country" in data and data["country"] is not None:
+            country = Country(data["country"])
+        return cls(
+            specifier=data.get("specifier", None),
+            po_box=data.get("poBox", None),
+            street=data.get("street", None),
+            zip=data.get("zip", None),
+            city=data.get("city", None),
+            country=country,
+        )
+
+
+class CompanyBillingAddress(ProcountorAPIObject):
+    def __init__(
+        self,
+        street: Optional[str] = None,
+        zip: Optional[str] = None,
+        city: Optional[str] = None,
+        country: Optional[Country] = None,
+    ):
+        self.street: Optional[str] = street
+        self.zip: Optional[str] = zip
+        self.city: Optional[str] = city
+        self.country: Optional[Country] = country
+
+    def as_dict(self) -> typing.Dict:
+        data = {}
+        if self.street is not None:
+            data["street"] = self.street
+        if self.zip is not None:
+            data["zip"] = self.zip
+        if self.city is not None:
+            data["city"] = self.city
+        if self.country is not None:
+            data["country"] = self.country.value
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, typing.Any]) -> "CompanyBillingAddress":
+        country = None
+        if "country" in data and data["country"] is not None:
+            country = Country(data["country"])
+        return cls(
+            street=data.get("street", None),
+            zip=data.get("zip", None),
+            city=data.get("city", None),
+            country=country,
+        )
+
+
+class BusinessIdentifier(ProcountorAPIObject):
+    def __init__(
+        self,
+        brn_type: Optional[BrnType] = None,
+        code: Optional[str] = None,
+    ):
+        self.brn_type: Optional[BrnType] = brn_type
+        self.code: Optional[str] = code
+
+    def as_dict(self) -> typing.Dict:
+        data = {}
+        if self.brn_type is not None:
+            data["brnType"] = self.brn_type.value
+        if self.code is not None:
+            data["code"] = self.code
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, typing.Any]) -> "BusinessIdentifier":
+        brn_type = None
+        if "brnType" in data and data["brnType"] is not None:
+            brn_type = BrnType(data["brnType"])
+        return cls(
+            brn_type=brn_type,
+            code=data.get("code", None),
+        )
+
+
+class Company(ProcountorAPIObject):
+    def __init__(
+        self,
+        id: int,
+        name: str,
+        country: Optional[Country] = None,
+        product_version: Optional[ProductVersion] = None,
+        operation_type: Optional[OperationType] = None,
+        accounting_office_name: Optional[str] = None,
+        accounting_office_id: Optional[int] = None,
+        company_address: Optional[CompanyAddress] = None,
+        billing_address: Optional[CompanyBillingAddress] = None,
+        mva: Optional[bool] = None,
+        in_trade_register: Optional[bool] = None,
+        business_identifier: Optional[BusinessIdentifier] = None,
+        accounting_coa_languages: Optional[typing.List[str]] = None,
+        company_currency: Optional[str] = None,
+        currency_rate_search_density: Optional[CurrencyRateSearchDensity] = None,
+    ):
+        self.id: int = id
+        self.name: str = name
+        self.country: Optional[Country] = country
+        self.product_version: Optional[ProductVersion] = product_version
+        self.operation_type: Optional[OperationType] = operation_type
+        self.accounting_office_name: Optional[str] = accounting_office_name
+        self.accounting_office_id: Optional[int] = accounting_office_id
+        self.company_address: Optional[CompanyAddress] = company_address
+        self.billing_address: Optional[CompanyBillingAddress] = billing_address
+        self.mva: Optional[bool] = mva
+        self.in_trade_register: Optional[bool] = in_trade_register
+        self.business_identifier: Optional[BusinessIdentifier] = business_identifier
+        self.accounting_coa_languages: Optional[typing.List[str]] = accounting_coa_languages
+        self.company_currency: Optional[str] = company_currency
+        self.currency_rate_search_density: Optional[CurrencyRateSearchDensity] = currency_rate_search_density
+
+    def as_dict(self) -> typing.Dict:
+        data = {
+            "id": self.id,
+            "name": self.name,
+        }
+        if self.country is not None:
+            data["country"] = self.country.value
+        if self.product_version is not None:
+            data["productVersion"] = self.product_version.value
+        if self.operation_type is not None:
+            data["operationType"] = self.operation_type.value
+        if self.accounting_office_name is not None:
+            data["accountingOfficeName"] = self.accounting_office_name
+        if self.accounting_office_id is not None:
+            data["accountingOfficeId"] = self.accounting_office_id
+        if self.company_address is not None:
+            data["companyAddress"] = self.company_address.as_dict()
+        if self.billing_address is not None:
+            data["billingAddress"] = self.billing_address.as_dict()
+        if self.mva is not None:
+            data["mva"] = self.mva
+        if self.in_trade_register is not None:
+            data["inTradeRegister"] = self.in_trade_register
+        if self.business_identifier is not None:
+            data["businessIdentifier"] = self.business_identifier.as_dict()
+        if self.accounting_coa_languages is not None:
+            data["accountingCoaLanguages"] = self.accounting_coa_languages
+        if self.company_currency is not None:
+            data["companyCurrency"] = self.company_currency
+        if self.currency_rate_search_density is not None:
+            data["currencyRateSearchDensity"] = self.currency_rate_search_density.value
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, typing.Any]) -> "Company":
+        country = None
+        if "country" in data and data["country"] is not None:
+            country = Country(data["country"])
+        product_version = None
+        if "productVersion" in data and data["productVersion"] is not None:
+            product_version = ProductVersion(data["productVersion"])
+        operation_type = None
+        if "operationType" in data and data["operationType"] is not None:
+            operation_type = OperationType(data["operationType"])
+        company_address = None
+        if "companyAddress" in data and data["companyAddress"] is not None:
+            company_address = CompanyAddress.from_dict(data["companyAddress"])
+        billing_address = None
+        if "billingAddress" in data and data["billingAddress"] is not None:
+            billing_address = CompanyBillingAddress.from_dict(data["billingAddress"])
+        business_identifier = None
+        if "businessIdentifier" in data and data["businessIdentifier"] is not None:
+            business_identifier = BusinessIdentifier.from_dict(data["businessIdentifier"])
+        currency_rate_search_density = None
+        if "currencyRateSearchDensity" in data and data["currencyRateSearchDensity"] is not None:
+            currency_rate_search_density = CurrencyRateSearchDensity(data["currencyRateSearchDensity"])
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            country=country,
+            product_version=product_version,
+            operation_type=operation_type,
+            accounting_office_name=data.get("accountingOfficeName", None),
+            accounting_office_id=data.get("accountingOfficeId", None),
+            company_address=company_address,
+            billing_address=billing_address,
+            mva=data.get("mva", None),
+            in_trade_register=data.get("inTradeRegister", None),
+            business_identifier=business_identifier,
+            accounting_coa_languages=data.get("accountingCoaLanguages", None),
+            company_currency=data.get("companyCurrency", None),
+            currency_rate_search_density=currency_rate_search_density,
         )
 
 
@@ -4630,14 +4885,17 @@ class ProcountorAPIClient(object):
         self.redirect_uri = redirect_uri
         self._oauth_access_token = None
         self._oauth_refresh_token = None
-        self._oauth_expires = None
-        self.state = "".join(
-            [random.choice(string.digits + string.ascii_letters) for x in range(16)]
-        )
+        self._api_key = None
+        self.state = self._generate_state()
         self.session.headers.update({"User-Agent": "Python Procountorlib"})
         retries = Retry(total=5, backoff_factor=5)
         self.session.mount("https://", HTTPAdapter(max_retries=retries))
         self.session.mount("http://", HTTPAdapter(max_retries=retries))
+
+    def _generate_state(self):
+        return "".join(
+            [random.choice(string.digits + string.ascii_letters) for x in range(16)]
+        )
 
     def _parse_procountor_error(
         self,
@@ -4811,19 +5069,89 @@ class ProcountorAPIClient(object):
         self,
         api_key: str
     ) -> None:
-        self._refresh_access_token_if_needed(token=api_key, token_type="M2M")
+        self._api_key = api_key
+        self._refresh_access_token_if_needed()
 
-    def _refresh_access_token_m2m(
+    def login_oauth_redirect(self):
+        # Reset state
+        self.state = self._generate_state()
+        # login url is always on api_url root
+        url_components = list(urlparse(self.api_url))
+        url_components[2] = "/login"
+        url_components[4] = urlencode({
+            "response_type": "code",
+            "redirect_uri": self.redirect_uri,
+            "client_id": self.client_id,
+            "state": self.state,
+        })
+        return urlunparse(url_components), self.state
+
+    def login_oauth_callback(self, code, state, expected_state=None):
+        # Check state and fetch access and refresh tokens
+        if not expected_state:
+            expected_state = self.state
+        if expected_state != state:
+            raise ProcountorAPIException("State don't match expected state")
+
+        post_url = "/oauth/token"
+        body = {
+            "grant_type": "authorization_code",
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "redirect_uri": self.redirect_uri,
+            "code": code,
+        }
+
+        # Delete old auth token
+        if "Authorization" in self.session.headers:
+            del self.session.headers["Authorization"]
+
+        response = self.post(post_url, body=body)
+
+        if response.status_code != 200:
+            raise ProcountorAPIException(
+                "Access token fetch failed, wrong response status code %d",
+                response.status_code,
+            )
+
+        response_body = response.json()
+
+        access_token = response_body.get("access_token")
+        refresh_token = response_body.get("refresh_token")
+
+        self._oauth_access_token = access_token
+        self._oauth_refresh_token = refresh_token
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "expires": self.token_expire_time(token=access_token),
+        }
+
+    def _refresh_access_token(
         self,
-        api_key,
     ) -> str:
         params = {
-            "grant_type": "client_credentials",
-            "api_key": api_key,
             "client_id": self.client_id,
             "client_secret": self.client_secret,
             "redirect_uri": self.redirect_uri,
         }
+        if self._oauth_refresh_token:
+            min_validity = datetime.now(timezone.utc) + timedelta(seconds=60)
+            if self.token_expire_time(token=self._oauth_refresh_token) > min_validity:
+                raise ProcountorRefreshTokenExpired("Refresh token has expired")
+            params.update({
+                "grant_type": "refresh_token",
+                "refresh_token": self._oauth_refresh_token,
+            })
+        elif self._api_key:
+            params.update({
+                "grant_type": "client_credentials",
+                "api_key": self._api_key,
+            })
+        else:
+            raise ProcountorAPIException("No refresh token or api_key for access_token refresh")
+
         headers = {"Content-type": "application/x-www-form-urlencoded"}
 
         # Delete old auth token
@@ -4846,9 +5174,6 @@ class ProcountorAPIClient(object):
             )
 
         self._oauth_access_token = response["access_token"]
-        self._oauth_expires = datetime.now(timezone.utc) + timedelta(
-            seconds=response.get("expires_in", -1)
-        )
 
         self.session.headers.update(
             {"Authorization": "Bearer %s" % self._oauth_access_token}
@@ -4857,8 +5182,6 @@ class ProcountorAPIClient(object):
 
     def _refresh_access_token_if_needed(
         self,
-        token,
-        token_type="M2M",
     ) -> None:
         now = datetime.now(timezone.utc)
 
@@ -4875,10 +5198,7 @@ class ProcountorAPIClient(object):
 
         logger.debug("Refreshing access token")
 
-        if token_type == "M2M":
-            self._refresh_access_token_m2m(api_key=token)
-        else:
-            logger.error("Unknown token type %s", token_type)
+        self._refresh_access_token()
 
     def post_attachment(
         self,
@@ -5446,6 +5766,34 @@ class ProcountorAPIClient(object):
             raise ProcountorAPIException("Failed to get salaryslip %s: %s", slip_id, response.content)
         return SalarySlipAccounting.from_dict(response.json(use_decimal=True))
 
+    def put_payrolls_salaryslips_accounting(
+        self,
+        slip_id: int,
+        salary_slip_accounting: SalarySlipAccounting,
+        create_reconciliation: Optional[bool] = None,
+    ) -> SalarySlipAccounting:
+        """
+        PUT /payrolls/salaryslips/<id>/accounting
+        Updates salary slip accounting and returns it.
+        :param slip_id: ID of the salary slip
+        :param salary_slip_accounting: Salary slip accounting data to update
+        :param create_reconciliation: Enable automatic generation of reconciliation row
+        :return: Updated SalarySlipAccounting object
+        """
+        params = {}
+        if create_reconciliation is not None:
+            params["createReconciliation"] = str(create_reconciliation).lower()
+        response = self.put(
+            f"/payrolls/salaryslips/{slip_id}/accounting",
+            params=params,
+            json=salary_slip_accounting.as_dict(),
+        )
+        if response.status_code != 200:
+            raise ProcountorAPIException(
+                "Failed to update salaryslip accounting %s: %s", slip_id, response.content
+            )
+        return SalarySlipAccounting.from_dict(response.json(use_decimal=True))
+
     def get_sessioninfo(self) -> SessionInfo:
         """
         GET /sessioninfo
@@ -5456,3 +5804,14 @@ class ProcountorAPIClient(object):
         if response.status_code != 200:
             raise ProcountorAPIException("Failed to get sessioninfo: %s", response.content)
         return SessionInfo.from_dict(response.json(use_decimal=True))
+
+    def get_company(self) -> Company:
+        """
+        GET /company
+        Returns basic information of the currently logged in company.
+        :return: Company object
+        """
+        response = self.get("/company")
+        if response.status_code != 200:
+            raise ProcountorAPIException("Failed to get company info: %s", response.content)
+        return Company.from_dict(response.json(use_decimal=True))

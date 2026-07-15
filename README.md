@@ -17,6 +17,10 @@ p = ProcountorAPIClient(
     client_secret="myclientsecret",
 )
 p.login_m2m(api_key="apikey")
+# OR
+url, expected_state = p.login_oauth_redirect()
+# redirect user to redirect url and wait for callback
+p.login_oauth_callback(code=code_from_response, state=state_from_response, expected_state=expected_state)
 
 p.get_products()
 

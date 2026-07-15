@@ -9,7 +9,7 @@ from .procountorlib import (
     InsuranceNotSubjectExceptionType, SocialSecurityCertificate,
     SixMonthRuleApplicability,
     PersonLanguage, PersonGender, PersonIdentifierType,
-    ProductVersion,
+    ProductVersion, BrnType, OperationType, CurrencyRateSearchDensity,
     InvoicePhysicalAddress, CounterPartyAddress, InvoiceBankAccount,
     EInvoiceAddress, InvoiceCounterParty, InvoicePaymentInfo,
     BusinessPartnerPaymentInfo, InvoiceRow, AttachmentMetadata, ExtraInfo, Invoice,
@@ -22,11 +22,12 @@ from .procountorlib import (
     PersonRegistryInfo, Person,
     PersonBasicAddress, PersonBasicInvoicingInfo, PersonBasicRegistryInfo,
     PersonBasicInfo,
-    CompanySettings, SessionInfo,
+    CompanySettings, CompanyAddress, CompanyBillingAddress,
+    BusinessIdentifier, Company, SessionInfo,
     ProcountorAPIClient,
     VAT_STATUS_DOMESTIC, VAT_STATUS_NO_HANDLING, KNOWN_PROCOUNTOR_ERRORS,
     ProcountorBaseException, ProcountorAPIException, ProcountorAPIValidationError,
-    RefreshTokenExpiredException, find_country_by_code,
+    ProcountorRefreshTokenExpired, find_country_by_code,
     python_to_procountor_name, value_from_type, auto_as_dict, auto_from_dict
 )
 
@@ -65,6 +66,9 @@ __all__ = [
     PersonGender,
     PersonIdentifierType,
     ProductVersion,
+    BrnType,
+    OperationType,
+    CurrencyRateSearchDensity,
 
     # Models
     InvoicePhysicalAddress,
@@ -106,6 +110,10 @@ __all__ = [
     PersonBasicRegistryInfo,
     PersonBasicInfo,
     CompanySettings,
+    CompanyAddress,
+    CompanyBillingAddress,
+    BusinessIdentifier,
+    Company,
     SessionInfo,
 
     # API Client
@@ -120,7 +128,7 @@ __all__ = [
     ProcountorBaseException,
     ProcountorAPIException,
     ProcountorAPIValidationError,
-    RefreshTokenExpiredException,
+    ProcountorRefreshTokenExpired,
 
     # Helper functions
     find_country_by_code,
