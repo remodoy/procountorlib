@@ -5070,7 +5070,7 @@ class ProcountorAPIClient(object):
         api_key: str
     ) -> None:
         self._api_key = api_key
-        self._refresh_access_token_if_needed()
+        self.refresh_access_token_if_needed()
 
     def login_oauth_redirect(self):
         # Reset state
@@ -5128,7 +5128,26 @@ class ProcountorAPIClient(object):
             "expires": self.token_expire_time(token=access_token),
         }
 
-    def _refresh_access_token(
+    def set_access_token(
+        self,
+        access_token: str,
+        refresh_token: Optional[str] = None
+    ) -> Dict:
+        self._oauth_access_token = access_token
+        self._api_key = None
+        if refresh_token:
+            self._oauth_refresh_token = refresh_token
+
+        self.session.headers.update(
+            {"Authorization": "Bearer %s" % self._oauth_access_token}
+        )
+
+        return {
+            "access_token": access_token,
+            "expires": self.token_expire_time(token=access_token),
+        }
+
+    def refresh_access_token(
         self,
     ) -> str:
         params = {
@@ -5180,7 +5199,7 @@ class ProcountorAPIClient(object):
         )
         return response["access_token"]
 
-    def _refresh_access_token_if_needed(
+    def refresh_access_token_if_needed(
         self,
     ) -> None:
         now = datetime.now(timezone.utc)
@@ -5198,7 +5217,7 @@ class ProcountorAPIClient(object):
 
         logger.debug("Refreshing access token")
 
-        self._refresh_access_token()
+        self.refresh_access_token()
 
     def post_attachment(
         self,

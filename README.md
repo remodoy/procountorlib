@@ -16,12 +16,19 @@ p = ProcountorAPIClient(
     client_id="myclientid",
     client_secret="myclientsecret",
 )
+# Login using M2M API Key
 p.login_m2m(api_key="apikey")
-# OR
+
+# OR with oauth flow
 url, expected_state = p.login_oauth_redirect()
 # redirect user to redirect url and wait for callback
 p.login_oauth_callback(code=code_from_response, state=state_from_response, expected_state=expected_state)
 
+# OR use existing oauth tokens
+p.set_access_token(access_token="your_access_token", refresh_token="your_refresh_token")
+p.refresh_access_token_if_needed()
+
+# Execute API Calls
 p.get_products()
 
 ```
