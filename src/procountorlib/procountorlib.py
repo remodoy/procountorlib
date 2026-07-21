@@ -5147,6 +5147,14 @@ class ProcountorAPIClient(object):
             "expires": self.token_expire_time(token=access_token),
         }
 
+    def get_access_token(self) -> Dict[str, str]:
+        out = {}
+        if self._oauth_access_token:
+            out["access_token"] = self._oauth_access_token
+        if self._oauth_refresh_token:
+            out["refresh_token"] = self._oauth_refresh_token
+        return out
+
     def refresh_access_token(
         self,
     ) -> str:
@@ -5201,7 +5209,7 @@ class ProcountorAPIClient(object):
 
     def refresh_access_token_if_needed(
         self,
-    ) -> None:
+    ) -> Optional[str]:
         now = datetime.now(timezone.utc)
 
         min_expire_time = now + timedelta(minutes=10)
@@ -5213,11 +5221,11 @@ class ProcountorAPIClient(object):
             and expire_time > min_expire_time
         ):
             logger.debug(f"No need to update access token, expires in {(expire_time - now).total_seconds}")
-            return
+            return None
 
         logger.debug("Refreshing access token")
 
-        self.refresh_access_token()
+        return self.refresh_access_token()
 
     def post_attachment(
         self,
