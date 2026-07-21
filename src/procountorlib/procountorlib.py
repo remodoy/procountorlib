@@ -5157,7 +5157,7 @@ class ProcountorAPIClient(object):
         }
         if self._oauth_refresh_token:
             min_validity = datetime.now(timezone.utc) + timedelta(seconds=60)
-            if self.token_expire_time(token=self._oauth_refresh_token) > min_validity:
+            if self.token_expire_time(token=self._oauth_refresh_token) < min_validity:
                 raise ProcountorRefreshTokenExpired("Refresh token has expired")
             params.update({
                 "grant_type": "refresh_token",
