@@ -1,6 +1,6 @@
 [project]
 name = "procountorlib"
-version = "1.0.2"
+version = "1.0.3"
 authors = [
   { name="Antti Kettuneva"},
 ]
@@ -12,11 +12,11 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "requests>=2.32.4",
-    "simplejson>=3.20.1",
+    "requests>=2.34.2",
+    "simplejson>=4.3.0",
 ]
 license = "MIT"
-license-files = ["LICENCE"]
+license-files = ["LICENSE"]
 
 [project.urls]
 Homepage = "https://github.com/remodoy/procountorlib"
