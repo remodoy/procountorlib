@@ -1710,6 +1710,8 @@ class InvoicePhysicalAddress(ProcountorAPIObject):
     ):
         if country and not isinstance(country, Country):
             raise ProcountorAPIValidationError("Invalid country {}".format(country))
+        # Typed attribute; _data below keeps the serialized value for as_dict()
+        self.country: Optional[Country] = country
         self._data = {
             "name": name,
         }
@@ -1738,13 +1740,16 @@ class InvoicePhysicalAddress(ProcountorAPIObject):
 
     @classmethod
     def from_dict(cls, data):
+        country = None
+        if "country" in data and data["country"] is not None:
+            country = Country(data["country"])
         return cls(
             name=data["name"],
             specifier=data.get("specifier", None),
             street=data.get("street", None),
             zip=data.get("zip", None),
             city=data.get("city", None),
-            country=Country(data.get("country", None)),
+            country=country,
             subdivision=data.get("subdivision", None)
         )
 
