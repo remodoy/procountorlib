@@ -6,10 +6,12 @@ from unittest import mock
 from procountorlib.procountorlib import (
     BusinessPartner,
     BusinessPartnerAddress,
+    CounterPartyAddress,
     Country,
     Invoice,
     InvoicePhysicalAddress,
     ProcountorAPIClient,
+    ProcountorAPIValidationError,
 )
 
 COMPLETE_ADDRESS = {
@@ -127,6 +129,18 @@ class InvoicePhysicalAddressTest(unittest.TestCase):
     def test_copy(self):
         address = copy.deepcopy(InvoicePhysicalAddress.from_dict(COMPLETE_ADDRESS))
         self.assertEqual(address.as_dict(), COMPLETE_ADDRESS)
+
+
+class CounterPartyAddressTest(unittest.TestCase):
+    def test_complete_address(self):
+        address = CounterPartyAddress.from_dict(COMPLETE_ADDRESS)
+        self.assertEqual(address.as_dict(), COMPLETE_ADDRESS)
+
+    def test_name_is_mandatory(self):
+        # The API requires name in counterPartyAddress, unlike in other addresses
+        data = {key: value for key, value in COMPLETE_ADDRESS.items() if key != "name"}
+        with self.assertRaises(ProcountorAPIValidationError):
+            CounterPartyAddress.from_dict(data)
 
 
 class InvoiceTest(unittest.TestCase):

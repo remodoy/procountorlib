@@ -1775,6 +1775,8 @@ class CounterPartyAddress(InvoicePhysicalAddress):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        if "name" not in self._data:
+            raise ProcountorAPIValidationError("name is mandatory for counter party")
         if "street" not in self._data:
             raise ProcountorAPIValidationError("street is mandatory for counter party")
         if "city" not in self._data:
