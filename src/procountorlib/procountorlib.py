@@ -1697,10 +1697,21 @@ def auto_from_dict(obj, data):
     return obj(**opts)
 
 
+def _is_empty_address(data) -> bool:
+    """
+    True when an address in an API response carries no information: the key
+    is missing, the value is null or {}, or every field is null or "".
+    Such an address is parsed as None instead of an address object.
+    """
+    if not data:
+        return True
+    return all(value is None or value == "" for value in data.values())
+
+
 class InvoicePhysicalAddress(ProcountorAPIObject):
     def __init__(
         self,
-        name,
+        name: Optional[str] = None,
         specifier: str = None,
         street: str = None,
         zip: str = None,
@@ -1712,9 +1723,9 @@ class InvoicePhysicalAddress(ProcountorAPIObject):
             raise ProcountorAPIValidationError("Invalid country {}".format(country))
         # Typed attribute; _data below keeps the serialized value for as_dict()
         self.country: Optional[Country] = country
-        self._data = {
-            "name": name,
-        }
+        self._data = {}
+        if name is not None:
+            self._data["name"] = name
         if specifier:
             self._data["specifier"] = specifier
         if street:
@@ -1729,8 +1740,14 @@ class InvoicePhysicalAddress(ProcountorAPIObject):
             self._data["subdivision"] = subdivision
 
     def __getattr__(self, item):
+        if item == "_data":
+            # Not initialised yet (e.g. during copy/unpickle); avoid recursion
+            raise AttributeError(item)
         if item in self._data:
             return self._data[item]
+        if item == "name":
+            # Procountor may return an address without a name
+            return None
         raise AttributeError(
             "'{}' object has no attribute '{}'".format(self.__class__.__name__, item)
         )
@@ -1744,7 +1761,7 @@ class InvoicePhysicalAddress(ProcountorAPIObject):
         if "country" in data and data["country"] is not None:
             country = Country(data["country"])
         return cls(
-            name=data["name"],
+            name=data.get("name", None),
             specifier=data.get("specifier", None),
             street=data.get("street", None),
             zip=data.get("zip", None),
@@ -1758,6 +1775,8 @@ class CounterPartyAddress(InvoicePhysicalAddress):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        if "name" not in self._data:
+            raise ProcountorAPIValidationError("name is mandatory for counter party")
         if "street" not in self._data:
             raise ProcountorAPIValidationError("street is mandatory for counter party")
         if "city" not in self._data:
@@ -2325,11 +2344,11 @@ class Invoice(ProcountorAPIObject):
             payment_info = InvoicePaymentInfo.from_dict(data["paymentInfo"])
         if "extraInfo" in data:
             extra_info = ExtraInfo.from_dict(data["extraInfo"])
-        if "billingAddress" in data:
+        if not _is_empty_address(data.get("billingAddress")):
             billing_address = InvoicePhysicalAddress.from_dict(data["billingAddress"])
         if "counterParty" in data:
             counter_party = InvoiceCounterParty.from_dict(data["counterParty"])
-        if "deliveryAddress" in data:
+        if not _is_empty_address(data.get("deliveryAddress")):
             delivery_address = InvoicePhysicalAddress.from_dict(data["deliveryAddress"])
         if "language" in data:
             language = InvoiceLanguage(data["language"])
@@ -2405,7 +2424,7 @@ class BusinessPartnerBasicInfo(ProcountorAPIObject):
 class BusinessPartnerAddress(ProcountorAPIObject):
     def __init__(
         self,
-        name: str,
+        name: typing.Optional[str] = None,
         specifier: typing.Optional[str] = None,
         street: typing.Optional[str] = None,
         zip: typing.Optional[str] = None,
@@ -2422,10 +2441,10 @@ class BusinessPartnerAddress(ProcountorAPIObject):
         self.subdivision = subdivision
 
     def as_dict(self) -> typing.Dict:
-        data = {
-            "name": self.name,
-        }
+        data = {}
 
+        if self.name is not None:
+            data["name"] = self.name
         if self.specifier is not None:
             data["specifier"] = self.specifier
         if self.street is not None:
@@ -2443,10 +2462,10 @@ class BusinessPartnerAddress(ProcountorAPIObject):
 
     @classmethod
     def from_dict(cls, data) -> "BusinessPartnerAddress":
-        params = {
-           "name": data["name"],
-        }
+        params = {}
 
+        if "name" in data:
+            params["name"] = data["name"]
         if "specifier" in data:
             params["specifier"] = data["specifier"]
         if "street" in data:
@@ -2457,7 +2476,7 @@ class BusinessPartnerAddress(ProcountorAPIObject):
             params["city"] = data["city"]
         if "subdivision" in data:
             params["subdivision"] = data["subdivision"]
-        if "country" in data:
+        if "country" in data and data["country"] is not None:
             params["country"] = Country(data["country"])
 
         return cls(**params)
@@ -2594,11 +2613,11 @@ class BusinessPartner(ProcountorAPIObject):
 
         if "id" in data:
             params["id"] = data["id"]
-        if "address" in data:
+        if not _is_empty_address(data.get("address")):
             params["address"] = BusinessPartnerAddress.from_dict(data["address"])
-        if "billingAddress" in data:
+        if not _is_empty_address(data.get("billingAddress")):
             params["billing_address"] = BusinessPartnerAddress.from_dict(data["billingAddress"])
-        if "deliveryAddress" in data and data["deliveryAddress"]:
+        if not _is_empty_address(data.get("deliveryAddress")):
             params["delivery_address"] = BusinessPartnerAddress.from_dict(data["deliveryAddress"])
         if "invoicingInfo" in data:
             params["invoicing_info"] = InvoicingInfo.from_dict(data["invoicingInfo"])
@@ -5554,7 +5573,7 @@ class ProcountorAPIClient(object):
         """
         result = self.get(f"/businesspartners/{partner_id}")
         if result.status_code == 200:
-            logger.debug("Business partner %s: %s", (partner_id, result.content))
+            logger.debug("Business partner %s: %s", partner_id, result.content)
             return BusinessPartner.from_dict(simplejson.loads(result.content, use_decimal=True))
         raise ProcountorAPIException("Getting business partner failed")
 
